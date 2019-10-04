@@ -16,6 +16,11 @@ for i in range(0x00, 0xFF+1):
     if i not in badchars:
         allchars += chr(i)
 
+#with open('badchars.bin', 'wb') as f:
+#	f.write(allchars)
+# Then with Mona: !mona compare -a esp -f c:\badchars.bin
+# -a esp: compare the content of memory at the address pointed to by ESP
+
 try:
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.settimeout(TIMEOUT)

