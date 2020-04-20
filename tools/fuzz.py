@@ -1,3 +1,4 @@
+# -*-coding:Latin-1 -*
 import socket
 import time
 
